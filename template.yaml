@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Intermediate SAM example
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  CreateUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handlers/createUser.handler
+      Runtime: nodejs16.x
+      Environment:
+        Variables:
+          TABLE_NAME: { Ref: UsersTable }
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+      Events:
+        API: 
+          Type: Api
+          Properties:
+            Path: /users
+            Method: post
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: dynamodb:PutItem
+            Resource:
+              Fn::GetAtt:
+                - UsersTable
+                - Arn
+  GetUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handlers/getUser.handler
+      Runtime: nodejs16.x
+      Environment:
+        Variables:
+          TABLE_NAME: { Ref: UsersTable }
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+      Events:
+        API: 
+          Type: Api
+          Properties:
+            Path: /users/{username}
+            Method: get
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: dynamodb:GetItem
+            Resource:
+              Fn::GetAtt:
+                - UsersTable
+                - Arn
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: username
+        AttributeType: S
+      KeySchema:
+      - AttributeName: username
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  APIEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    
